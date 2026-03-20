@@ -123,6 +123,28 @@
       <line x1="6" y1="4" x2="6" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       <path d="M6 4 L18 4 L15 9 L18 14 L6 14 Z" fill="currentColor" opacity="0.8"/>
     </symbol>
+
+    <!-- Bone / Treat icon -->
+    <symbol id="icon-bone" viewBox="0 0 24 24">
+      <path d="M3.5 7.5a2.5 2.5 0 0 1 4.4-1.6l.1.1L12 10l4-4 .1-.1a2.5 2.5 0 1 1 3.5 3.5l-.1.1L15.5 13.5l4 4 .1.1a2.5 2.5 0 1 1-3.5 3.5l-.1-.1-4-4-4 4-.1.1a2.5 2.5 0 1 1-3.5-3.5l.1-.1 4-4-4-4-.1-.1A2.5 2.5 0 0 1 3.5 7.5z" fill="currentColor"/>
+    </symbol>
+
+    <!-- Dog face icon (profile) -->
+    <symbol id="icon-dog-face" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="14" rx="8" ry="7" fill="currentColor" opacity="0.9"/>
+      <ellipse cx="12" cy="9" rx="6" ry="5" fill="currentColor"/>
+      <ellipse cx="5" cy="7" rx="3" ry="4.5" fill="currentColor" transform="rotate(-15 5 7)"/>
+      <ellipse cx="19" cy="7" rx="3" ry="4.5" fill="currentColor" transform="rotate(15 19 7)"/>
+      <circle cx="9.5" cy="10" r="1.2" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="14.5" cy="10" r="1.2" fill="var(--bg, #1A1A2E)"/>
+      <ellipse cx="12" cy="13" rx="1.5" ry="1" fill="var(--bg, #1A1A2E)" opacity="0.5"/>
+    </symbol>
+
+    <!-- Lock icon -->
+    <symbol id="icon-lock" viewBox="0 0 24 24">
+      <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
   </defs>
 </svg>
 
@@ -161,6 +183,7 @@
   <div class="breed-header">
     <h2>Choose Your Breed</h2>
     <p>Each breed has unique territory colors</p>
+    <div id="breed-lock-msg" class="breed-lock-msg hidden"></div>
   </div>
   <div class="breed-grid" id="breed-grid" data-testid="breed-grid">
     <!-- Breed cards injected by JS -->
@@ -252,7 +275,14 @@
         <svg class="hud-breed-icon" id="hud-breed-icon"><use href="#breed-husky"/></svg>
         <span class="hud-breed-name" id="hud-breed-name">Husky</span>
       </div>
+      <div class="hud-treats" id="hud-treats-wrap">
+        <svg width="14" height="14" style="color:#FFB300"><use href="#icon-bone"/></svg>
+        <span class="hud-treats-value" id="hud-treats">0</span>
+      </div>
       <div style="flex:1"></div>
+      <button id="btn-profile" class="hud-profile-btn" aria-label="Open profile">
+        <svg width="18" height="18"><use href="#icon-dog-face"/></svg>
+      </button>
       <button id="btn-scoreboard" class="hud-scoreboard-btn" aria-label="Open scoreboard">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10l-1 9H8L7 4z"/><path d="M5 4h14"/></svg>
       </button>
@@ -277,9 +307,44 @@
   </div>
 </div>
 
+<!-- ============================================
+     PROFILE SCREEN
+     ============================================ -->
+<div id="profile-screen" class="screen hidden">
+  <div class="profile-card">
+    <button id="btn-profile-back" class="profile-back-btn" aria-label="Back to map">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      Back
+    </button>
+    <div class="profile-avatar" id="profile-avatar">
+      <!-- Large breed SVG injected by JS -->
+    </div>
+    <h2 class="profile-breed-name" id="profile-breed-name">Husky</h2>
+    <div class="profile-breed-color" id="profile-breed-color"></div>
+    <div class="profile-stats" id="profile-stats">
+      <!-- Stats injected by JS -->
+    </div>
+    <div class="profile-shop">
+      <h3>Accessories Shop</h3>
+      <p>Coming Soon</p>
+    </div>
+  </div>
+</div>
+
 <!-- Footer Attribution -->
 <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer" class="attribution">Created with Perplexity Computer</a>
 
-<script src="app.js"></script>
+<!-- Modular JS — load order matters -->
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/api.js"></script>
+<script src="js/map.js"></script>
+<script src="js/territory.js"></script>
+<script src="js/gps.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
