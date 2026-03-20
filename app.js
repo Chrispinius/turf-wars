@@ -34,6 +34,8 @@ const state = {
   // Demo mode
   demoMode: false,
   demoMarker: null,
+  locationGranted: false,
+  skipLocation: false,
 
   // Default center (NYC Times Square) as fallback
   defaultCenter: [-73.9857, 40.7484],
@@ -50,7 +52,10 @@ const els = {
   loading:       $('#loading-overlay'),
   titleScreen:   $('#title-screen'),
   breedScreen:   $('#breed-screen'),
+  locationScreen:$('#location-screen'),
   gameScreen:    $('#game-screen'),
+  btnGrantLoc:   $('#btn-grant-location'),
+  btnSkipLoc:    $('#btn-skip-location'),
   breedGrid:     $('#breed-grid'),
   btnPlay:       $('#btn-play'),
   btnStart:      $('#btn-start'),
@@ -139,7 +144,7 @@ function uid() {
 
 function showScreen(name) {
   state.screen = name;
-  const screens = { title: els.titleScreen, breed: els.breedScreen, game: els.gameScreen };
+  const screens = { title: els.titleScreen, breed: els.breedScreen, location: els.locationScreen, game: els.gameScreen };
   Object.entries(screens).forEach(([key, el]) => {
     el.classList.toggle('hidden', key !== name);
     el.classList.toggle('visible', key === name);
@@ -670,7 +675,30 @@ function generateRivalTerritories(center) {
 }
 
 // ============================================
-// 14. EVENT LISTENERS
+// 14. LAUNCH GAME
+// ============================================
+
+function launchGame(center) {
+  showScreen('game');
+  setupHUD();
+  els.loading.classList.remove('hidden');
+
+  if (center) {
+    // We have GPS — launch with location
+    initMap(center);
+    startGPSTracking();
+  } else {
+    // No GPS — use default center and auto-enable demo mode
+    initMap(state.defaultCenter);
+    setGPSStatus('error', 'No GPS — Demo Mode');
+    // Auto-enable demo mode
+    state.demoMode = true;
+    els.demoToggle.classList.add('active');
+  }
+}
+
+// ============================================
+// 15. EVENT LISTENERS
 // ============================================
 
 function init() {
@@ -681,49 +709,47 @@ function init() {
     showScreen('breed');
   });
 
-  // Breed → Game
+  // Breed → Location permission screen
   els.btnStart.addEventListener('click', () => {
     if (!state.selectedBreed) return;
-    showScreen('game');
-    setupHUD();
+    showScreen('location');
+  });
 
-    // Show loading overlay for map
-    els.loading.classList.remove('hidden');
-
-    // Request location — must happen in direct click handler for iOS Safari
-    if (navigator.geolocation) {
-      // iOS needs longer timeout for first GPS lock
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const center = [pos.coords.longitude, pos.coords.latitude];
-          state.defaultCenter = center;
-          initMap(center);
-          startGPSTracking();
-        },
-        (err) => {
-          console.warn('Geolocation error:', err.code, err.message);
-          initMap(state.defaultCenter);
-          if (err.code === 1) {
-            // PERMISSION_DENIED
-            setGPSStatus('error', 'Location denied — use Demo');
-            showToast('Location access denied. Enable in Settings > Safari > Location, or use Demo Mode.', 'warning');
-          } else if (err.code === 2) {
-            // POSITION_UNAVAILABLE
-            setGPSStatus('error', 'Location unavailable — use Demo');
-            showToast('Could not get your location. Try Demo Mode.', 'warning');
-          } else {
-            // TIMEOUT
-            setGPSStatus('error', 'GPS timeout — use Demo');
-            showToast('GPS took too long. Try again or use Demo Mode.', 'warning');
-          }
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
-    } else {
-      initMap(state.defaultCenter);
-      setGPSStatus('error', 'No GPS — use Demo');
-      showToast('Geolocation not supported. Use Demo Mode.', 'warning');
+  // Grant Location button — triggers GPS prompt
+  els.btnGrantLoc.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      launchGame(null);
+      return;
     }
+    // Disable button to prevent double-tap
+    els.btnGrantLoc.disabled = true;
+    els.btnGrantLoc.textContent = 'Waiting for permission...';
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const center = [pos.coords.longitude, pos.coords.latitude];
+        state.defaultCenter = center;
+        state.locationGranted = true;
+        launchGame(center);
+      },
+      (err) => {
+        console.warn('Geolocation error:', err.code, err.message);
+        els.btnGrantLoc.disabled = false;
+        els.btnGrantLoc.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg> Try Again';
+        if (err.code === 1) {
+          showToast('Location denied. Check Settings > Safari > Location, or use Demo Mode below.', 'warning');
+        } else {
+          showToast('Could not get location. Try again or use Demo Mode.', 'warning');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  });
+
+  // Skip location — go straight to demo mode
+  els.btnSkipLoc.addEventListener('click', () => {
+    state.skipLocation = true;
+    launchGame(null);
   });
 
   // Start/Stop Marking
@@ -795,9 +821,15 @@ function goBackToMenu() {
   state.territories = [];
   state.territoryCounter = 0;
   state.demoMode = false;
+  state.locationGranted = false;
+  state.skipLocation = false;
 
   // Reset demo toggle visual
   els.demoToggle.classList.remove('active');
+
+  // Reset location button
+  els.btnGrantLoc.disabled = false;
+  els.btnGrantLoc.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg> Share My Location';
 
   // Go to breed screen so user can switch breed or re-enter
   showScreen('breed');
