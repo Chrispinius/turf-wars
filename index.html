@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#E94560">
+<title>Turf Wars — Mark Your Territory</title>
+<link rel="manifest" href="manifest.json">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- MapLibre GL JS -->
+<link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+
+<!-- Turf.js for polygon operations -->
+<script src="https://unpkg.com/@turf/turf@7/turf.min.js"></script>
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================
+     SVG DEFS (hidden, referenced by use)
+     ============================================ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <defs>
+    <!-- Paw Print -->
+    <symbol id="icon-paw" viewBox="0 0 64 64">
+      <ellipse cx="32" cy="42" rx="14" ry="12" fill="currentColor"/>
+      <ellipse cx="18" cy="24" rx="6" ry="8" fill="currentColor" transform="rotate(-15 18 24)"/>
+      <ellipse cx="32" cy="20" rx="6" ry="8" fill="currentColor"/>
+      <ellipse cx="46" cy="24" rx="6" ry="8" fill="currentColor" transform="rotate(15 46 24)"/>
+      <ellipse cx="11" cy="36" rx="5" ry="7" fill="currentColor" transform="rotate(-25 11 36)"/>
+      <ellipse cx="53" cy="36" rx="5" ry="7" fill="currentColor" transform="rotate(25 53 36)"/>
+    </symbol>
+
+    <!-- Husky silhouette -->
+    <symbol id="breed-husky" viewBox="0 0 48 48">
+      <path d="M10 38 L10 22 L6 12 L14 16 L18 10 L24 14 L30 10 L34 16 L42 12 L38 22 L38 38 Z" fill="currentColor" opacity="0.9"/>
+      <circle cx="18" cy="24" r="2.5" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="30" cy="24" r="2.5" fill="var(--bg, #1A1A2E)"/>
+      <path d="M21 30 Q24 33 27 30" stroke="var(--bg, #1A1A2E)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Bulldog silhouette -->
+    <symbol id="breed-bulldog" viewBox="0 0 48 48">
+      <rect x="10" y="16" width="28" height="22" rx="8" fill="currentColor" opacity="0.9"/>
+      <rect x="8" y="12" width="10" height="12" rx="4" fill="currentColor"/>
+      <rect x="30" y="12" width="10" height="12" rx="4" fill="currentColor"/>
+      <circle cx="19" cy="24" r="2.5" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="29" cy="24" r="2.5" fill="var(--bg, #1A1A2E)"/>
+      <ellipse cx="24" cy="31" rx="4" ry="3" fill="var(--bg, #1A1A2E)" opacity="0.5"/>
+    </symbol>
+
+    <!-- Golden Retriever silhouette -->
+    <symbol id="breed-golden" viewBox="0 0 48 48">
+      <ellipse cx="24" cy="26" rx="14" ry="13" fill="currentColor" opacity="0.9"/>
+      <ellipse cx="24" cy="16" rx="10" ry="9" fill="currentColor"/>
+      <ellipse cx="12" cy="14" rx="5" ry="7" fill="currentColor" transform="rotate(-20 12 14)"/>
+      <ellipse cx="36" cy="14" rx="5" ry="7" fill="currentColor" transform="rotate(20 36 14)"/>
+      <circle cx="20" cy="17" r="2" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="28" cy="17" r="2" fill="var(--bg, #1A1A2E)"/>
+      <ellipse cx="24" cy="21" rx="2.5" ry="1.8" fill="var(--bg, #1A1A2E)" opacity="0.5"/>
+    </symbol>
+
+    <!-- German Shepherd silhouette -->
+    <symbol id="breed-shepherd" viewBox="0 0 48 48">
+      <path d="M12 38 L12 20 L8 8 L18 14 L24 10 L30 14 L40 8 L36 20 L36 38 Z" fill="currentColor" opacity="0.9"/>
+      <path d="M14 38 L14 30 Q24 42 34 30 L34 38 Z" fill="currentColor" opacity="0.7"/>
+      <circle cx="19" cy="22" r="2" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="29" cy="22" r="2" fill="var(--bg, #1A1A2E)"/>
+      <path d="M21 28 L24 30 L27 28" stroke="var(--bg, #1A1A2E)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Dalmatian silhouette -->
+    <symbol id="breed-dalmatian" viewBox="0 0 48 48">
+      <ellipse cx="24" cy="26" rx="14" ry="12" fill="currentColor" opacity="0.9"/>
+      <ellipse cx="24" cy="16" rx="10" ry="9" fill="currentColor"/>
+      <ellipse cx="13" cy="12" rx="5" ry="7" fill="currentColor" transform="rotate(-10 13 12)"/>
+      <ellipse cx="35" cy="12" rx="5" ry="7" fill="currentColor" transform="rotate(10 35 12)"/>
+      <circle cx="20" cy="17" r="2" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="28" cy="17" r="2" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="18" cy="28" r="3" fill="var(--bg, #1A1A2E)" opacity="0.3"/>
+      <circle cx="30" cy="24" r="2.5" fill="var(--bg, #1A1A2E)" opacity="0.3"/>
+      <circle cx="24" cy="32" r="2" fill="var(--bg, #1A1A2E)" opacity="0.3"/>
+    </symbol>
+
+    <!-- Shiba Inu silhouette -->
+    <symbol id="breed-shiba" viewBox="0 0 48 48">
+      <ellipse cx="24" cy="28" rx="12" ry="11" fill="currentColor" opacity="0.9"/>
+      <ellipse cx="24" cy="18" rx="10" ry="9" fill="currentColor"/>
+      <path d="M14 18 L10 6 L20 14 Z" fill="currentColor"/>
+      <path d="M34 18 L38 6 L28 14 Z" fill="currentColor"/>
+      <circle cx="20" cy="18" r="2" fill="var(--bg, #1A1A2E)"/>
+      <circle cx="28" cy="18" r="2" fill="var(--bg, #1A1A2E)"/>
+      <path d="M22 23 Q24 25 26 23" stroke="var(--bg, #1A1A2E)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Territory flag icon -->
+    <symbol id="icon-flag" viewBox="0 0 24 24">
+      <line x1="6" y1="4" x2="6" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M6 4 L18 4 L15 9 L18 14 L6 14 Z" fill="currentColor" opacity="0.8"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ============================================
+     LOADING OVERLAY
+     ============================================ -->
+<div id="loading-overlay" class="loading-overlay hidden">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading map...</div>
+</div>
+
+<!-- ============================================
+     TITLE SCREEN
+     ============================================ -->
+<div id="title-screen" class="screen visible">
+  <div class="title-bg"></div>
+  <div class="title-content">
+    <svg class="title-logo" aria-label="Paw print logo" style="color:#E94560">
+      <use href="#icon-paw"/>
+    </svg>
+    <div class="title-text">
+      <h1>TURF WARS</h1>
+      <p>Mark Your Territory</p>
+    </div>
+    <button id="btn-play" class="btn-primary" data-testid="btn-play">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Play
+    </button>
+  </div>
+</div>
+
+<!-- ============================================
+     BREED SELECTION SCREEN
+     ============================================ -->
+<div id="breed-screen" class="screen hidden">
+  <div class="breed-header">
+    <h2>Choose Your Breed</h2>
+    <p>Each breed has unique territory colors</p>
+  </div>
+  <div class="breed-grid" id="breed-grid" data-testid="breed-grid">
+    <!-- Breed cards injected by JS -->
+  </div>
+  <div class="breed-actions">
+    <button id="btn-start" class="btn-primary" disabled data-testid="btn-start">
+      Start Sniffing
+    </button>
+  </div>
+</div>
+
+<!-- ============================================
+     GAME SCREEN (Map)
+     ============================================ -->
+<div id="game-screen" class="screen hidden">
+  <!-- Map container -->
+  <div id="map"></div>
+
+  <!-- GPS Status -->
+  <div id="gps-status" class="gps-status searching">
+    <div class="gps-dot"></div>
+    <span id="gps-text">Finding GPS...</span>
+  </div>
+
+  <!-- Demo Mode Toggle -->
+  <button id="demo-toggle" class="demo-toggle" data-testid="demo-toggle">
+    <div class="demo-dot"></div>
+    <span>Demo</span>
+  </button>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Territory Popup -->
+  <div id="territory-popup" class="territory-popup">
+    <svg width="16" height="16"><use href="#icon-flag"/></svg>
+    <span id="popup-text"></span>
+  </div>
+
+  <!-- Bottom HUD -->
+  <div class="hud" id="hud">
+    <div class="hud-stats">
+      <div class="hud-breed">
+        <svg class="hud-breed-icon" id="hud-breed-icon"><use href="#breed-husky"/></svg>
+        <span class="hud-breed-name" id="hud-breed-name">Husky</span>
+      </div>
+      <div style="flex:1"></div>
+      <div class="hud-stat">
+        <span class="hud-stat-value" id="hud-territories" data-testid="hud-territories">0</span>
+        <span class="hud-stat-label">Turfs</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-value" id="hud-area" data-testid="hud-area">0</span>
+        <span class="hud-stat-label">m²</span>
+      </div>
+    </div>
+    <div class="hud-actions">
+      <button id="btn-mark" class="btn-mark" data-testid="btn-mark">
+        <svg width="20" height="20"><use href="#icon-paw"/></svg>
+        Start Marking
+      </button>
+      <button id="btn-close-loop" class="btn-close-loop" data-testid="btn-close-loop">
+        ✓ Close Loop
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer Attribution -->
+<a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer" class="attribution">Created with Perplexity Computer</a>
+
+<script src="app.js"></script>
+</body>
+</html>

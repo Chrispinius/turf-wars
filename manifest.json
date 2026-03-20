@@ -1,0 +1,9 @@
+{
+  "name": "Turf Wars",
+  "short_name": "Turf Wars",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1A1A2E",
+  "theme_color": "#E94560",
+  "description": "Mark your territory! A location-based dog territory game."
+}
