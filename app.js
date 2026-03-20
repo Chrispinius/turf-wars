@@ -66,6 +66,11 @@ const els = {
   toastContainer:$('#toast-container'),
   territoryPopup:$('#territory-popup'),
   popupText:     $('#popup-text'),
+  btnBack:       $('#btn-back'),
+  scoreboard:    $('#scoreboard'),
+  scoreboardList:$('#scoreboard-list'),
+  btnScoreboard: $('#btn-scoreboard'),
+  btnCloseScore: $('#btn-close-scoreboard'),
   map:           $('#map'),
 };
 
@@ -176,7 +181,7 @@ function initMap(center) {
     container: 'map',
     style: 'https://tiles.openfreemap.org/styles/liberty',
     center: center,
-    zoom: 16,
+    zoom: 14,
     attributionControl: false,
     pitchWithRotate: false,
     dragRotate: false,
@@ -606,7 +611,7 @@ function toggleDemoMode() {
       const center = state.map.getCenter();
       state.userLocation = { lng: center.lng, lat: center.lat };
       createPlayerMarker([center.lng, center.lat]);
-      state.map.flyTo({ center: [center.lng, center.lat], zoom: 16 });
+      state.map.flyTo({ center: [center.lng, center.lat], zoom: 15 });
     }
   } else {
     showToast('Demo Mode OFF — using GPS', 'info');
@@ -740,11 +745,116 @@ function init() {
     toggleDemoMode();
   });
 
+  // Back to Menu
+  els.btnBack.addEventListener('click', () => {
+    goBackToMenu();
+  });
+
+  // Scoreboard
+  els.btnScoreboard.addEventListener('click', () => {
+    openScoreboard();
+  });
+
+  els.btnCloseScore.addEventListener('click', () => {
+    closeScoreboard();
+  });
+
+  // Close scoreboard by tapping backdrop
+  els.scoreboard.addEventListener('click', (e) => {
+    if (e.target === els.scoreboard) closeScoreboard();
+  });
+
   // Loading overlay starts hidden via HTML class
 }
 
 // ============================================
-// 15. STARTUP
+// 15. BACK TO MENU
+// ============================================
+
+function goBackToMenu() {
+  // Stop GPS tracking
+  if (state.watchId !== null) {
+    navigator.geolocation.clearWatch(state.watchId);
+    state.watchId = null;
+  }
+
+  // Stop marking if active
+  if (state.isMarking) stopMarking();
+
+  // Remove the map instance
+  if (state.map) {
+    state.map.remove();
+    state.map = null;
+  }
+
+  // Reset game state but keep breed selection
+  state.userLocation = null;
+  state.trailCoords = [];
+  state.markStartPoint = null;
+  state.isMarking = false;
+  state.territories = [];
+  state.territoryCounter = 0;
+  state.demoMode = false;
+
+  // Reset demo toggle visual
+  els.demoToggle.classList.remove('active');
+
+  // Go to breed screen so user can switch breed or re-enter
+  showScreen('breed');
+}
+
+// ============================================
+// 16. SCOREBOARD
+// ============================================
+
+function openScoreboard() {
+  updateScoreboardData();
+  els.scoreboard.classList.remove('hidden');
+}
+
+function closeScoreboard() {
+  els.scoreboard.classList.add('hidden');
+}
+
+function updateScoreboardData() {
+  // Aggregate territory data by breed
+  const breedStats = {};
+
+  BREEDS.forEach(b => {
+    breedStats[b.id] = { breed: b, turfs: 0, area: 0 };
+  });
+
+  state.territories.forEach(t => {
+    if (breedStats[t.breedId]) {
+      breedStats[t.breedId].turfs++;
+      breedStats[t.breedId].area += t.area || 0;
+    }
+  });
+
+  // Sort by area descending
+  const sorted = Object.values(breedStats).sort((a, b) => b.area - a.area);
+
+  els.scoreboardList.innerHTML = sorted.map((entry, i) => {
+    const b = entry.breed;
+    const isCurrent = state.selectedBreed && b.id === state.selectedBreed.id;
+    const areaStr = entry.area >= 1000
+      ? (entry.area / 1000).toFixed(1) + '<span class="scoreboard-area-unit">km²</span>'
+      : Math.round(entry.area) + '<span class="scoreboard-area-unit">m²</span>';
+
+    return `
+      <div class="scoreboard-row ${isCurrent ? 'current' : ''}">
+        <span class="scoreboard-rank">${i + 1}</span>
+        <svg class="scoreboard-breed-icon" style="color:${b.color}"><use href="#${b.icon}"/></svg>
+        <span class="scoreboard-breed-name">${b.name}</span>
+        <span class="scoreboard-turfs">${entry.turfs} turf${entry.turfs !== 1 ? 's' : ''}</span>
+        <span class="scoreboard-area">${areaStr}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================
+// 17. STARTUP
 // ============================================
 
 document.addEventListener('DOMContentLoaded', init);
