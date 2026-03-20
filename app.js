@@ -685,8 +685,9 @@ function init() {
     // Show loading overlay for map
     els.loading.classList.remove('hidden');
 
-    // Try to get location first for map centering
+    // Request location — must happen in direct click handler for iOS Safari
     if (navigator.geolocation) {
+      // iOS needs longer timeout for first GPS lock
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const center = [pos.coords.longitude, pos.coords.latitude];
@@ -694,16 +695,29 @@ function init() {
           initMap(center);
           startGPSTracking();
         },
-        () => {
-          // GPS failed, use default
+        (err) => {
+          console.warn('Geolocation error:', err.code, err.message);
           initMap(state.defaultCenter);
-          setGPSStatus('error', 'No GPS — use Demo');
+          if (err.code === 1) {
+            // PERMISSION_DENIED
+            setGPSStatus('error', 'Location denied — use Demo');
+            showToast('Location access denied. Enable in Settings > Safari > Location, or use Demo Mode.', 'warning');
+          } else if (err.code === 2) {
+            // POSITION_UNAVAILABLE
+            setGPSStatus('error', 'Location unavailable — use Demo');
+            showToast('Could not get your location. Try Demo Mode.', 'warning');
+          } else {
+            // TIMEOUT
+            setGPSStatus('error', 'GPS timeout — use Demo');
+            showToast('GPS took too long. Try again or use Demo Mode.', 'warning');
+          }
         },
-        { enableHighAccuracy: true, timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     } else {
       initMap(state.defaultCenter);
       setGPSStatus('error', 'No GPS — use Demo');
+      showToast('Geolocation not supported. Use Demo Mode.', 'warning');
     }
   });
 
